@@ -8,18 +8,29 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div class="container">
+    <div class="container mb-5">
         <h3 class="title my-3">Generate DOCX from Template</h1>
         <form id="myForm" action="/generate" method="POST" enctype="multipart/form-data" class="row">
             <div class="col-4">
                 <div class="mb-3">
                     <label class="form-label">Upload DOCX Template</label>
-                    <input type="file" class="form-control" name="template" accept=".doc,.docx" required>
+                    <input type="file" class="form-control" name="template" accept=".doc,.docx" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">File name</label>
+                    <input type="text" class="form-control" name="file_name" placeholder="Default is same name as uploaded file" />
                 </div>
                 <button type="button" class="btn btn-danger" onclick="resetForm()">Reset</button>
-                <button type="submit" class="btn btn-primary">Generate Document</button>
+                <button type="submit" id="btnSubmit" class="btn btn-primary">Generate Document</button>
             </div>
             <div class="col-8">
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <strong>How to use marker: </strong> 
+                    <br/>
+                    <div>- All markers must be unique.</div>
+                    <div>- Put markers into DOCX template to render data correctly.</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
                 <div id="inputs" class="row"></div>
                 <button type="button" class="btn btn-link px-0" onclick="onAdd1MoreField()">Need 1 more field?</button>
             </div>
@@ -39,18 +50,58 @@
             fieldCount++;
 
             const divBlock = document.createElement('div');
-            divBlock.className = 'col-6 mb-3';
+            divBlock.className = 'col-12 mb-3';
 
-            const newInputLabel = document.createElement('label');
-            newInputLabel.innerText = `Field #${fieldCount}`;
-            newInputLabel.className = 'form-label';
+            // const newInputLabel = document.createElement('label');
+            // newInputLabel.innerText = `Field #${fieldCount}`;
+            // newInputLabel.className = 'form-label';
+
+            const newInputMarker = document.createElement('input');
+            newInputMarker.type = 'text';
+            newInputMarker.style = 'width: 200px';
+            newInputMarker.className = 'form-control';
+            newInputMarker.name = `marker_${fieldCount}`;
+            newInputMarker.placeholder = `field_${fieldCount}`;
+
+            const newErrorLabel = document.createElement('p');
+            newErrorLabel.id = `error_${fieldCount}`;
+            newErrorLabel.innerText = `Marker is existed. Please enter another marker.`;
+            newErrorLabel.className = 'text-danger fst-italic';
+            newErrorLabel.hidden = true;
 
             const newInput = document.createElement('textarea');
+            newInput.id = `field_${fieldCount}`;
             newInput.type = 'text';
-            newInput.className = 'form-control';
-            newInput.name = 'field_' + fieldCount;
+            newInput.className = 'form-control mt-2';
+            newInput.name = `field_${fieldCount}`;
 
-            divBlock.appendChild(newInputLabel);
+            newInputMarker.onchange = () => {
+                let isExisted = false;
+                for (let i = 1; i <= fieldCount; i++) {
+                    const _newInput = document.getElementById(`field_${i}`);
+                    if (
+                        _newInput.id != newInput.id 
+                        && _newInput.name == newInputMarker.value
+                    ) {
+                        isExisted = true;
+                    }
+                    else {
+                        document.getElementById(`error_${i}`).hidden = true;
+                    }
+                }
+                if (isExisted) {
+                    newErrorLabel.hidden = false;
+                    document.getElementById('btnSubmit').disabled = true;
+                }
+                else {
+                    newErrorLabel.hidden = true;
+                    document.getElementById('btnSubmit').disabled = false;
+                }
+                newInput.name = newInputMarker.value || newInput.id;
+            }; 
+
+            divBlock.appendChild(newInputMarker);
+            divBlock.appendChild(newErrorLabel);
             divBlock.appendChild(newInput);
 
             document.getElementById('inputs').appendChild(divBlock);
@@ -62,6 +113,13 @@
                 onAdd1MoreField();
             }
         }
+
+        // function onSubmit(e) {
+        //     console.log('onSubmit', e);
+        //     const form = e.target;
+        //     form.submit();
+
+        // }
 
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>

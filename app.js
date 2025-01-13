@@ -19,7 +19,7 @@ app.use(express.json());
 const upload = multer({ dest: 'uploads/' });
 
 // Home route to render the form
-app.get('/', (req, res) => {
+app.get(['/', '/generate'], (req, res) => {
   res.render('index');
 });
 
@@ -51,10 +51,11 @@ app.post('/generate', upload.single('template'), (req, res) => {
       const buf = doc.getZip().generate({ type: 'nodebuffer' });
 
       // Send the generated file to the user
-      const outputPath = path.join(__dirname, 'uploads', 'generated_output.docx');
+      const file_name = data.file_name || file.originalname?.split('.')[0];
+      const outputPath = path.join(__dirname, 'uploads', `${file_name}.docx`);
       fs.writeFileSync(outputPath, buf);
 
-      res.download(outputPath, 'generated_output.docx', (err) => {
+      res.download(outputPath, `${file_name}.docx`, (err) => {
         if (err) {
           console.error('Error sending file:', err);
         }
@@ -63,7 +64,6 @@ app.post('/generate', upload.single('template'), (req, res) => {
       });
     });
   } catch (error) {
-    console.log('adasdasda', error);
     res.status(500).send('Error processing the template.');
   }
 });
