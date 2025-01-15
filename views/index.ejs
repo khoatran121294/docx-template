@@ -11,19 +11,23 @@
     <div class="container mb-5">
         <h3 class="title my-3">Generate DOCX from Template</h1>
         <form id="myForm" action="/generate" method="POST" enctype="multipart/form-data" class="row">
-            <div class="col-4">
+            <div class="col-md-4 col-sm-12 mb-3">
                 <div class="mb-3">
                     <label class="form-label">Upload DOCX Template</label>
-                    <input type="file" class="form-control" name="template" accept=".doc,.docx" required />
+                    <input id="docxUpload" type="file" class="form-control" name="template" accept=".doc,.docx" onchange="onDocxUploadChange(event)" required />
                 </div>
                 <div class="mb-3">
                     <label class="form-label">File name</label>
                     <input type="text" class="form-control" name="file_name" placeholder="Default is same name as uploaded file" />
                 </div>
-                <button type="button" class="btn btn-danger" onclick="resetForm()">Reset</button>
-                <button type="submit" id="btnSubmit" class="btn btn-primary">Generate Document</button>
+                <div class="d-grid gap-1">
+                    <button type="button" class="btn btn-danger" onclick="resetForm()">Reset</button>
+                    <button type="submit" id="btnSubmit" class="btn btn-primary">Generate Document</button>
+                    <button type="button" class="btn btn-info" onclick="onSaveMarkers()">Save Markers</button>
+                    <label class="text-danger fst-italic" id="lblSaveMarkerResult"></label>
+                </div>
             </div>
-            <div class="col-8">
+            <div class="col-md-8 col-sm-12">
                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
                     <strong>How to use marker: </strong> 
                     <br/>
@@ -37,47 +41,49 @@
         </form>
     </div>
     <script>
-        let fieldCount = 0;
+        let fieldLength = 10;
+        let fileName = '';
+        const myForm = document.getElementById('myForm');
+        const docxUpload = document.getElementById('docxUpload');
+        const lblSaveMarkerResult = document.getElementById('lblSaveMarkerResult');
+        const btnSubmit = document.getElementById('btnSubmit');
+        const divInputs = document.getElementById('inputs');
         onInit();
 
         function resetForm() {
-            document.getElementById('myForm').reset();
-            document.getElementById('inputs').innerHTML = '';
+            myForm.reset();
+            divInputs.innerHTML = '';
             onInit();
         }
 
-        function onAdd1MoreField() {
-            fieldCount++;
+        function onAdd1MoreField(index, marker) {
 
             const divBlock = document.createElement('div');
             divBlock.className = 'col-12 mb-3';
-
-            // const newInputLabel = document.createElement('label');
-            // newInputLabel.innerText = `Field #${fieldCount}`;
-            // newInputLabel.className = 'form-label';
 
             const newInputMarker = document.createElement('input');
             newInputMarker.type = 'text';
             newInputMarker.style = 'width: 200px';
             newInputMarker.className = 'form-control';
-            newInputMarker.name = `marker_${fieldCount}`;
-            newInputMarker.placeholder = `field_${fieldCount}`;
+            newInputMarker.name = `marker_${index}`;
+            newInputMarker.placeholder = `field_${index}`;
+            newInputMarker.value = (!marker || marker == `field_${index}`) ? '' : marker;
 
             const newErrorLabel = document.createElement('p');
-            newErrorLabel.id = `error_${fieldCount}`;
+            newErrorLabel.id = `error_${index}`;
             newErrorLabel.innerText = `Marker is existed. Please enter another marker.`;
             newErrorLabel.className = 'text-danger fst-italic';
             newErrorLabel.hidden = true;
 
             const newInput = document.createElement('textarea');
-            newInput.id = `field_${fieldCount}`;
+            newInput.id = `field_${index}`;
             newInput.type = 'text';
             newInput.className = 'form-control mt-2';
-            newInput.name = `field_${fieldCount}`;
+            newInput.name = !marker ? `field_${index}` : marker;
 
             newInputMarker.onchange = () => {
                 let isExisted = false;
-                for (let i = 1; i <= fieldCount; i++) {
+                for (let i = 0; i < fieldLength; i++) {
                     const _newInput = document.getElementById(`field_${i}`);
                     if (
                         _newInput.id != newInput.id 
@@ -91,11 +97,11 @@
                 }
                 if (isExisted) {
                     newErrorLabel.hidden = false;
-                    document.getElementById('btnSubmit').disabled = true;
+                    btnSubmit.disabled = true;
                 }
                 else {
                     newErrorLabel.hidden = true;
-                    document.getElementById('btnSubmit').disabled = false;
+                    btnSubmit.disabled = false;
                 }
                 newInput.name = newInputMarker.value || newInput.id;
             }; 
@@ -104,22 +110,52 @@
             divBlock.appendChild(newErrorLabel);
             divBlock.appendChild(newInput);
 
-            document.getElementById('inputs').appendChild(divBlock);
+            divInputs.appendChild(divBlock);
         }
 
         function onInit () {
-            fieldCount = 0;
-            for (let index = 0; index < 10; index++) {
-                onAdd1MoreField();
+            fieldLength = 10;
+            lblSaveMarkerResult.innerText = '';
+            for (let index = 0; index < fieldLength; index++) {
+                onAdd1MoreField(index);
             }
         }
 
-        // function onSubmit(e) {
-        //     console.log('onSubmit', e);
-        //     const form = e.target;
-        //     form.submit();
+        function onSaveMarkers () {
+            if (!docxUpload.files[0]) {
+                docxUpload.reportValidity();
+                return;
+            }
+            const fileName = docxUpload.files[0].name;
+            const markers = [];
+            for (let i = 0; i < fieldLength; i++) {
+                markers.push(document.getElementById(`field_${i}`).name);
+            }
+            localStorage.setItem(fileName, markers);
+            lblSaveMarkerResult.innerText = `Markers for file ${fileName} has been saved successfully!`;
+        }
 
-        // }
+        function onDocxUploadChange (e) {
+            lblSaveMarkerResult.innerText = '';
+
+            const file = e.target.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            let markers = localStorage.getItem(file.name);
+
+            if (!!markers) {
+                divInputs.innerHTML = '';
+                markers = markers.split(',');           
+                fieldLength = markers.length;
+                for (i = 0; i < fieldLength; i++) {
+                    onAdd1MoreField(i, markers[i]);
+                }
+            }
+            
+        };
 
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
